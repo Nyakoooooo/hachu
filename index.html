@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>発注管理システム</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script>
+        const requirements = {
+            Monday: { "青ネギ": 9, "もやし": 6, "カイワレ": 6, "白ネギ": 30, "大葉": 100 },
+            Tuesday: { "青ネギ": 9, "もやし": 6, "カイワレ": 6 },
+            Wednesday: { "青ネギ": 9, "もやし": 6, "カイワレ": 6, "白ネギ": 30, "大葉": 100 },
+            Thursday: { "青ネギ": 11, "もやし": 9, "カイワレ": 8, "白ネギ": 30 },
+            Friday: { "青ネギ": 6, "もやし": 5, "カイワレ": 3, "白ネギ": 30, "大葉": 100 },
+            Saturday: { "青ネギ": 8, "もやし": 6, "カイワレ": 6 },
+        };
+
+        function updateFields() {
+            const day = document.getElementById("day").value;
+            const fieldsContainer = document.getElementById("fields");
+            fieldsContainer.innerHTML = "";
+
+            const currentRequirements = requirements[day] || {};
+            for (const [key, value] of Object.entries(currentRequirements)) {
+                const unit = key === "青ネギ" || key === "カイワレ" ? "p" : key === "もやし" ? "kg" : key === "白ネギ" ? "本" : "枚";
+                let options = "";
+                for (let i = 0; i <= 100; i++) {
+                    options += `<option value="${i}">${i}</option>`;
+                }
+                fieldsContainer.innerHTML += `
+                    <div class="field-row">
+                        <label>${key}:</label>
+                        <select name="${key}" class="input-field">${options}</select>
+                        <span class="unit">(${unit})</span>
+                    </div>
+                `;
+            }
+        }
+
+        function calculateOrder() {
+            const day = document.getElementById("day").value;
+            const date = new Date(document.getElementById("date").value);
+            const fields = document.querySelectorAll("#fields select");
+            const resultContainer = document.getElementById("result");
+            const messageContainer = document.getElementById("order-message");
+
+            const month = date.getMonth() + 1;
+            const dayOfMonth = date.getDate();
+            const weekdays = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
+            const weekday = weekdays[date.getDay()];
+
+            let message = `お世話になります。\n<span class="highlight">${month}月${dayOfMonth}日</span>　<span class="highlight">${weekday}</span>納品分\n\n`;
+
+            fields.forEach(field => {
+                const name = field.name;
+                const stock = parseInt(field.value, 10);
+                const required = requirements[day][name];
+                const unit = name === "青ネギ" || name === "カイワレ" ? "p" : name === "もやし" ? "kg" : name === "白ネギ" ? "本" : "枚";
+                if (required !== undefined) {
+                    const order = Math.max(required - stock, 0);
+                    message += `${name}: <span class="highlight">${order}</span>${unit}\n`;
+                }
+            });
+
+            message += "\nよろしくお願いいたします。";
+            messageContainer.innerHTML = message;
+            resultContainer.style.display = "block";
+        }
+
+        function copyMessage() {
+            const message = document.getElementById("order-message").innerText;
+            navigator.clipboard.writeText(message).then(() => {
+                alert("発注メッセージをコピーしました！");
+            }).catch(err => {
+                alert("コピーに失敗しました: " + err);
+            });
+        }
+    </script>
+</head>
+<body onload="updateFields()">
+    <h1>発注管理システム</h1>
+    <div class="form-container">
+        <form onsubmit="event.preventDefault(); calculateOrder();" onreset="return confirm('本当にリセットしますか？');">
+            <div class="form-group">
+                <label for="date">納品する日:</label>
+                <input type="date" id="date" name="date" required class="input-field">
+            </div>
+            <div class="form-group">
+                <label for="day">勤務した曜日（日付が回っても基準は最後に開店した曜日）:</label>
+                <select id="day" name="day" class="input-field" onchange="updateFields()">
+                    <option value="Monday">月曜日</option>
+                    <option value="Tuesday">火曜日</option>
+                    <option value="Wednesday">水曜日</option>
+                    <option value="Thursday">木曜日</option>
+                    <option value="Friday">金曜日</option>
+                    <option value="Saturday">土曜日</option>
+                </select>
+            </div>
+            <h2>在庫数を入力してください:</h2>
+            <div id="fields"></div>
+            <div class="button-group">
+                <button type="submit">計算する</button>
+                <button type="reset">リセット</button>
+            </div>
+        </form>
+    </div>
+    <div id="result" style="display: none; margin-top: 20px;">
+        <div class="result-box">
+            <h2>発注メッセージ</h2>
+            <pre id="order-message"></pre>
+        </div>
+        <button onclick="copyMessage()">メッセージをコピー</button>
+    </div>
+</body>
+</html>

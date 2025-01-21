@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>発注管理システム</title>
     <link rel="stylesheet" href="styles.css">
+    <title>発注管理システム</title>
     <script>
         const requirements = {
             Monday: { "青ネギ": 9, "もやし": 6, "カイワレ": 6, "白ネギ": 30, "大葉": 100 },
@@ -29,35 +29,11 @@
                 }
                 fieldsContainer.innerHTML += `
                     <div class="field-row">
-                        <label>${key} (${unit}):</label>
+                        <label>${key}:</label>
                         <select name="${key}" class="input-field">${options}</select>
+                        <span class="unit">(${unit})</span>
                     </div>
                 `;
-            }
-        }
-
-        function addCustomField() {
-            const customFieldsContainer = document.getElementById("custom-fields");
-            const id = `custom-${Date.now()}`;
-            let options = "";
-            for (let i = 0; i <= 100; i++) {
-                options += `<option value="${i}">${i}</option>`;
-            }
-            const customField = `
-                <div class="field-row" id="${id}">
-                    <label>野菜名:</label>
-                    <input type="text" name="custom-name[]" class="input-field" placeholder="野菜名を入力">
-                    <select name="custom-quantity[]" class="input-field">${options}</select>
-                    <button type="button" onclick="removeCustomField('${id}')" class="remove-btn">✖</button>
-                </div>
-            `;
-            customFieldsContainer.innerHTML += customField;
-        }
-
-        function removeCustomField(id) {
-            const field = document.getElementById(id);
-            if (field) {
-                field.remove();
             }
         }
 
@@ -65,7 +41,6 @@
             const day = document.getElementById("day").value;
             const date = new Date(document.getElementById("date").value);
             const fields = document.querySelectorAll("#fields select");
-            const customFields = document.querySelectorAll("#custom-fields .field-row");
             const resultContainer = document.getElementById("result");
             const messageContainer = document.getElementById("order-message");
 
@@ -74,10 +49,7 @@
             const weekdays = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
             const weekday = weekdays[date.getDay()];
 
-            let message = `お世話になります。
-<span class="highlight">${month}月${dayOfMonth}日</span>　<span class="highlight">${weekday}</span>納品分
-
-`;
+            let message = `お世話になります。\n<span class="highlight">${month}月${dayOfMonth}日</span>　<span class="highlight">${weekday}</span>納品分\n\n`;
 
             fields.forEach(field => {
                 const name = field.name;
@@ -86,24 +58,22 @@
                 const unit = name === "青ネギ" || name === "カイワレ" ? "p" : name === "もやし" ? "kg" : name === "白ネギ" ? "本" : "枚";
                 if (required !== undefined) {
                     const order = Math.max(required - stock, 0);
-                    message += `${name}: <span class="highlight">${order}</span>${unit}
-`;
+                    message += `${name}: <span class="highlight">${order}</span>${unit}\n`;
                 }
             });
 
-            customFields.forEach(customField => {
-                const name = customField.querySelector("input[name='custom-name[]']").value;
-                const quantity = customField.querySelector("select[name='custom-quantity[]']").value;
-                if (name && quantity > 0) {
-                    message += `${name}: <span class="highlight">${quantity}</span>
-`;
-                }
-            });
-
-            message += "
-よろしくお願いいたします。";
+            message += "\nよろしくお願いいたします。";
             messageContainer.innerHTML = message;
             resultContainer.style.display = "block";
+        }
+
+        function copyMessage() {
+            const message = document.getElementById("order-message").innerText;
+            navigator.clipboard.writeText(message).then(() => {
+                alert("発注メッセージをコピーしました！");
+            }).catch(err => {
+                alert("コピーに失敗しました: " + err);
+            });
         }
     </script>
 </head>
@@ -128,9 +98,6 @@
             </div>
             <h2>在庫数を入力してください:</h2>
             <div id="fields"></div>
-            <h2>臨時項目を追加:</h2>
-            <div id="custom-fields"></div>
-            <button type="button" onclick="addCustomField()">+ 項目を追加</button>
             <div class="button-group">
                 <button type="submit">計算する</button>
                 <button type="reset">リセット</button>
@@ -142,6 +109,7 @@
             <h2>発注メッセージ</h2>
             <pre id="order-message"></pre>
         </div>
+        <button onclick="copyMessage()">メッセージをコピー</button>
     </div>
 </body>
 </html>

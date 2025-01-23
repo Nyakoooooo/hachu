@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
     <title>発注管理システム</title>
+    <link rel="stylesheet" href="styles.css">
     <script>
         const requirements = {
             Monday: { "青ネギ": 9, "もやし": 6, "カイワレ": 6, "白ネギ": 30, "大葉": 100 },
-            Tuesday: { "青ネギ": 9, "もやし": 6, "カイワレ": 6 },
+            Tuesday: { "青ネギ": 9, "もやし": 6, "カイワレ": 6, "白ネギ": 30, "大葉": 100 },
             Wednesday: { "青ネギ": 9, "もやし": 6, "カイワレ": 6, "白ネギ": 30, "大葉": 100 },
-            Thursday: { "青ネギ": 11, "もやし": 9, "カイワレ": 8, "白ネギ": 30 },
+            Thursday: { "青ネギ": 11, "もやし": 9, "カイワレ": 8, "白ネギ": 30, "大葉": 100 },
             Friday: { "青ネギ": 6, "もやし": 5, "カイワレ": 3, "白ネギ": 30, "大葉": 100 },
-            Saturday: { "青ネギ": 8, "もやし": 6, "カイワレ": 6 },
+            Saturday: { "青ネギ": 8, "もやし": 6, "カイワレ": 6, "白ネギ": 30, "大葉": 100 },
         };
 
         function updateFields() {
@@ -20,27 +20,79 @@
             const fieldsContainer = document.getElementById("fields");
             fieldsContainer.innerHTML = "";
 
+            const maxLimits = {
+                "青ネギ": 15,
+                "もやし": 15,
+                "カイワレ": 15,
+                "白ネギ": 30,
+                "大葉": 100
+            };
+
             const currentRequirements = requirements[day] || {};
             for (const [key, value] of Object.entries(currentRequirements)) {
                 const unit = key === "青ネギ" || key === "カイワレ" ? "p" : key === "もやし" ? "kg" : key === "白ネギ" ? "本" : "枚";
                 let options = "";
-                for (let i = 0; i <= 100; i++) {
-                    options += `<option value="${i}">${i}</option>`;
+
+                if (key === "白ネギ") {
+                    for (let i = 0; i <= maxLimits[key]; i++) {
+                        if (i === 30) {
+                            options += `<option value="${i}">1ケース（30p）</option>`;
+                        } else {
+                            options += `<option value="${i}">${i}</option>`;
+                        }
+                    }
+                } else if (key === "大葉") {
+                    options += `<option value="0">0</option>`;
+                    options += `<option value="100">1p（100枚）</option>`;
+                } else {
+                    for (let i = 0; i <= maxLimits[key]; i++) {
+                        options += `<option value="${i}">${i}</option>`;
+                    }
                 }
+
                 fieldsContainer.innerHTML += `
                     <div class="field-row">
-                        <label>${key}:</label>
+                        <label>${key} (${unit}):</label>
                         <select name="${key}" class="input-field">${options}</select>
-                        <span class="unit">(${unit})</span>
                     </div>
                 `;
             }
         }
 
+        function addCustomField() {
+            const customFieldsContainer = document.getElementById("custom-fields");
+            const fieldId = `custom-${Date.now()}`;
+
+            const customFieldHTML = `
+                <div class="field-row" id="${fieldId}">
+                    <input type="text" placeholder="野菜名" class="input-field custom-name" required>
+                    <select class="input-field custom-quantity">
+                        ${[...Array(101).keys()].map(i => `<option value="${i}">${i}</option>`).join("")}
+                    </select>
+                    <button type="button" onclick="removeCustomField('${fieldId}')">削除</button>
+                </div>
+            `;
+
+            customFieldsContainer.insertAdjacentHTML("beforeend", customFieldHTML);
+        }
+
+        function removeCustomField(fieldId) {
+            const field = document.getElementById(fieldId);
+            if (field) field.remove();
+        }
+
         function calculateOrder() {
             const day = document.getElementById("day").value;
-            const date = new Date(document.getElementById("date").value);
+            const dateInput = document.getElementById("date").value;
+
+            if (!dateInput) {
+                alert("日付を選択してください。");
+                return;
+            }
+
+            const date = new Date(dateInput);
             const fields = document.querySelectorAll("#fields select");
+            const customFields = document.querySelectorAll("#custom-fields .field-row");
             const resultContainer = document.getElementById("result");
             const messageContainer = document.getElementById("order-message");
 
@@ -56,9 +108,26 @@
                 const stock = parseInt(field.value, 10);
                 const required = requirements[day][name];
                 const unit = name === "青ネギ" || name === "カイワレ" ? "p" : name === "もやし" ? "kg" : name === "白ネギ" ? "本" : "枚";
+
                 if (required !== undefined) {
                     const order = Math.max(required - stock, 0);
-                    message += `${name}: <span class="highlight">${order}</span>${unit}\n`;
+
+                    if (name === "白ネギ" && order === 30) {
+                        message += `${name}: <span class="highlight">1ケース（30p）</span>\n`;
+                    } else if (name === "大葉" && order === 100) {
+                        message += `${name}: <span class="highlight">1p（100枚）</span>\n`;
+                    } else {
+                        message += `${name}: <span class="highlight">${order}</span>${unit}\n`;
+                    }
+                }
+            });
+
+            customFields.forEach(customField => {
+                const name = customField.querySelector(".custom-name").value;
+                const quantity = customField.querySelector(".custom-quantity").value;
+
+                if (name && quantity > 0) {
+                    message += `${name}: ${quantity}\n`;
                 }
             });
 
@@ -98,6 +167,8 @@
             </div>
             <h2>在庫数を入力してください:</h2>
             <div id="fields"></div>
+            <div id="custom-fields"></div>
+            <button type="button" onclick="addCustomField()">+ 項目を追加</button>
             <div class="button-group">
                 <button type="submit">計算する</button>
                 <button type="reset">リセット</button>
@@ -108,8 +179,8 @@
         <div class="result-box">
             <h2>発注メッセージ</h2>
             <pre id="order-message"></pre>
+            <button onclick="copyMessage()">メッセージをコピー</button>
         </div>
-        <button onclick="copyMessage()">メッセージをコピー</button>
     </div>
 </body>
 </html>

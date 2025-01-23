@@ -127,7 +127,7 @@
                 const quantity = customField.querySelector(".custom-quantity").value;
 
                 if (name && quantity > 0) {
-                    message += `${name}: ${quantity}\n`;
+                    message += `${name}: <span class="highlight">${quantity}</span>p\n`;
                 }
             });
 
@@ -182,5 +182,8 @@
             <button onclick="copyMessage()">メッセージをコピー</button>
         </div>
     </div>
+    <footer style="margin-top: 20px; text-align: center;">
+        <img src="https://i.gyazo.com/093ae68790cc1b5b336111bab84f1883.jpg" alt="発注表" style="max-width: 100%; height: auto;">
+    </footer>
 </body>
 </html>
